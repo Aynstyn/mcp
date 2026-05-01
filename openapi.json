@@ -1,0 +1,2184 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Aynstyn API",
+    "description": "The Aynstyn API gives AI agents and developers programmatic access to Aynstyn's\nAI-powered learning and assessment platform for competitive exams (UPSC, CAT, GATE,\nGRE, NEET, JEE) and professional development.\n\n## Authentication\n\nAynstyn supports two authentication methods:\n\n### 1. Firebase Bearer Token (direct integration)\nObtain a Firebase ID token after signing in via Firebase Authentication.\nPass it as `Authorization: Bearer <idToken>` on every request.\n\n### 2. OAuth 2.0 (recommended for third-party agents)\nUse the OAuth 2.0 authorization code flow to obtain an access token on behalf\nof a user. Scope your request to only the permissions your agent needs.\n\n**Authorization endpoint:** `https://app.aynstyn.com/api/oauth/authorize`\n**Token endpoint:** `https://app.aynstyn.com/api/oauth/token`\n\n## Scopes\n\n| Scope | Description |\n|---|---|\n| `profile:read` | Read user profile and settings |\n| `assessments:read` | View assessment history and results |\n| `assessments:write` | Create and submit assessments |\n| `learning:read` | View learning goals, courses and progress |\n| `learning:write` | Create and update learning goals and courses |\n| `interviews:read` | View interview history and available slots |\n| `interviews:write` | Schedule and cancel interviews |\n| `planner:read` | View planner tasks |\n| `planner:write` | Create and manage planner tasks |\n| `credits:read` | View credit balance and transaction history |\n\n## Base URLs\n\n| Environment | Base URL |\n|---|---|\n| Production | `https://app.aynstyn.com` |\n\n## Credits\n\nMost AI-powered operations consume credits. A standard text assessment costs 4 credits.\nCredits are deducted after a successful response. Insufficient credits returns HTTP 402.\n",
+    "version": "1.2.0",
+    "contact": {
+      "name": "Aynstyn Developer Support",
+      "url": "https://aynstyn.com/contact-us",
+      "email": "support@aynstyn.com"
+    },
+    "license": {
+      "name": "Proprietary",
+      "url": "https://aynstyn.com/terms-and-conditions"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://app.aynstyn.com",
+      "description": "Production"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Auth",
+      "description": "Authentication and session management"
+    },
+    {
+      "name": "User",
+      "description": "User profile and settings"
+    },
+    {
+      "name": "Assessments",
+      "description": "AI-powered knowledge assessments"
+    },
+    {
+      "name": "Learning Goals",
+      "description": "Goal-based learning paths and courses"
+    },
+    {
+      "name": "Interviews",
+      "description": "AI interview scheduling and practice sessions"
+    },
+    {
+      "name": "Planner",
+      "description": "Smart study planner and task management"
+    },
+    {
+      "name": "Payments",
+      "description": "Credit packages and transaction history"
+    },
+    {
+      "name": "Community",
+      "description": "Community posts and discussions"
+    },
+    {
+      "name": "Team Assessments",
+      "description": "Collaborative team knowledge checks"
+    }
+  ],
+  "paths": {
+    "/api/auth/session": {
+      "get": {
+        "operationId": "getSession",
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Get current session",
+        "description": "Returns authentication status and basic user info from the active session.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Session state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthenticatedSession"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UnauthenticatedSession"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "operationId": "logout",
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Log out",
+        "description": "Invalidates the current session and clears auth cookies.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "oauth2": [
+              "profile:read"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Logged out successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "logged out"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/oauth/authorize": {
+      "get": {
+        "operationId": "oauthAuthorize",
+        "tags": [
+          "Auth"
+        ],
+        "summary": "OAuth 2.0 authorization endpoint",
+        "description": "Redirects the user to the Aynstyn consent page. After approval, the user\nis redirected back to `redirect_uri` with an authorization code.\n",
+        "security": [],
+        "parameters": [
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "response_type",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "code"
+              ]
+            }
+          },
+          {
+            "name": "redirect_uri",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "profile:read assessments:read"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirect to consent page"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    },
+    "/api/oauth/token": {
+      "post": {
+        "operationId": "oauthToken",
+        "tags": [
+          "Auth"
+        ],
+        "summary": "OAuth 2.0 token endpoint",
+        "description": "Exchange an authorization code for an access token, or refresh an existing token.\n",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/TokenRequestAuthCode"
+                  },
+                  {
+                    "$ref": "#/components/schemas/TokenRequestRefresh"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Access token issued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/oauth/me": {
+      "get": {
+        "operationId": "oauthMe",
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Get authenticated user info (OAuth)",
+        "description": "Returns basic identity info for the OAuth-authenticated user.",
+        "security": [
+          {
+            "oauth2": [
+              "profile:read"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthUserInfo"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/user/initialize": {
+      "post": {
+        "operationId": "initializeUser",
+        "tags": [
+          "User"
+        ],
+        "summary": "Initialize user profile",
+        "description": "Called once after first Firebase sign-in to create the DB user record.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "oauth2": [
+              "profile:read"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User profile created or fetched",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfile"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/user/settings": {
+      "get": {
+        "operationId": "getUserSettings",
+        "tags": [
+          "User"
+        ],
+        "summary": "Get user settings",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "oauth2": [
+              "profile:read"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User settings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserSettings"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateUserSettings",
+        "tags": [
+          "User"
+        ],
+        "summary": "Update user settings",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "oauth2": [
+              "profile:read"
+            ]
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserSettingsUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated settings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserSettings"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/assess": {
+      "post": {
+        "operationId": "submitAssessment",
+        "tags": [
+          "Assessments"
+        ],
+        "summary": "Submit a knowledge assessment",
+        "description": "Runs an AI-powered assessment on a subject and returns a scored report with\ntopic-level feedback and improvement recommendations.\n\n**Credits:** 4 credits per assessment (authenticated users). Anonymous users\nhave a daily attempt limit.\n",
+        "security": [
+          {},
+          {
+            "bearerAuth": []
+          },
+          {
+            "oauth2": [
+              "assessments:write"
+            ]
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssessmentSubmission"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Assessment results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentResult"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Insufficient credits",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InsufficientCredits"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Daily assessment limit reached (anonymous users)"
+          }
+        }
+      }
+    },
+    "/api/assessment/{id}": {
+      "get": {
+        "operationId": "getAssessment",
+        "tags": [
+          "Assessments"
+        ],
+        "summary": "Get assessment details",
+        "security": [
+          {},
+          {
+            "bearerAuth": []
+          },
+          {
+            "oauth2": [
+              "assessments:read"
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/assessmentId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Assessment data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Assessment"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/user/assessments": {
+      "get": {
+        "operationId": "listUserAssessments",
+        "tags": [
+          "Assessments"
+        ],
+        "summary": "List assessment history",
+        "description": "Returns the authenticated user's past assessments ordered by date.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "oauth2": [
+              "assessments:read"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Assessment history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AssessmentSummary"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/assessment/{id}/report": {
+      "post": {
+        "operationId": "getAssessmentReport",
+        "tags": [
+          "Assessments"
+        ],
+        "summary": "Get detailed assessment report",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "oauth2": [
+              "assessments:read"
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/assessmentId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Detailed report with gap analysis",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentReport"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/assessment-limit": {
+      "get": {
+        "operationId": "getAssessmentLimit",
+        "tags": [
+          "Assessments"
+        ],
+        "summary": "Check anonymous assessment limit",
+        "description": "Returns remaining daily assessment attempts for unauthenticated users.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Limit status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "remaining": {
+                      "type": "integer",
+                      "example": 2
+                    },
+                    "daily_limit": {
+                      "type": "integer",
+                      "example": 3
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/learning-goals/": {
+      "get": {
+        "operationId": "listLearningGoals",
+        "tags": [
+          "Learning Goals"
+        ],
+        "summary": "List learning goals",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "oauth2": [
+              "learning:read"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User's learning goals",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LearningGoal"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createLearningGoal",
+        "tags": [
+          "Learning Goals"
+        ],
+        "summary": "Create a learning goal",
+        "description": "Accepts a free-text learning objective. The AI breaks it into a structured\ntopic list with progress tracking.\n",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "oauth2": [
+              "learning:write"
+            ]
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "goal"
+                ],
+                "properties": {
+                  "goal": {
+                    "type": "string",
+                    "example": "Master React hooks in 3 months"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Goal created with AI-generated topic plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearningGoal"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/learning-goals/{id}": {
+      "get": {
+        "operationId": "getLearningGoal",
+        "tags": [
+          "Learning Goals"
+        ],
+        "summary": "Get goal details",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "oauth2": [
+              "learning:read"
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/goalId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Goal with topic breakdown",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearningGoalDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteLearningGoal",
+        "tags": [
+          "Learning Goals"
+        ],
+        "summary": "Delete a learning goal",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "oauth2": [
+              "learning:write"
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/goalId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessMessage"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/interviews/slots": {
+      "get": {
+        "operationId": "getInterviewSlots",
+        "tags": [
+          "Interviews"
+        ],
+        "summary": "List available interview slots",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "oauth2": [
+              "interviews:read"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Available time slots",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InterviewSlot"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/interviews/schedule": {
+      "post": {
+        "operationId": "scheduleInterview",
+        "tags": [
+          "Interviews"
+        ],
+        "summary": "Book an interview session",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "oauth2": [
+              "interviews:write"
+            ]
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InterviewBookingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Interview booked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InterviewBooking"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/interviews/history": {
+      "get": {
+        "operationId": "listInterviewHistory",
+        "tags": [
+          "Interviews"
+        ],
+        "summary": "List past interviews",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "oauth2": [
+              "interviews:read"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Interview history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InterviewSummary"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/interviews/cancel": {
+      "post": {
+        "operationId": "cancelInterview",
+        "tags": [
+          "Interviews"
+        ],
+        "summary": "Cancel an interview",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "oauth2": [
+              "interviews:write"
+            ]
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "bookingId"
+                ],
+                "properties": {
+                  "bookingId": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cancelled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessMessage"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/planner/": {
+      "get": {
+        "operationId": "listPlannerItems",
+        "tags": [
+          "Planner"
+        ],
+        "summary": "List planner items",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "oauth2": [
+              "planner:read"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Planner items",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PlannerItem"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createPlannerItem",
+        "tags": [
+          "Planner"
+        ],
+        "summary": "Create a planner item",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "oauth2": [
+              "planner:write"
+            ]
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlannerItemCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Item created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlannerItem"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/planner/{id}/status": {
+      "patch": {
+        "operationId": "updatePlannerStatus",
+        "tags": [
+          "Planner"
+        ],
+        "summary": "Update planner item status",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "oauth2": [
+              "planner:write"
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "pending",
+                      "completed"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlannerItem"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/payments/credits": {
+      "get": {
+        "operationId": "getCredits",
+        "tags": [
+          "Payments"
+        ],
+        "summary": "Get credit balance",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "oauth2": [
+              "credits:read"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Credit balance",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreditBalance"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/payments/packages": {
+      "get": {
+        "operationId": "listCreditPackages",
+        "tags": [
+          "Payments"
+        ],
+        "summary": "List credit packages",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Available packages",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CreditPackage"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/payments/transactions": {
+      "get": {
+        "operationId": "listTransactions",
+        "tags": [
+          "Payments"
+        ],
+        "summary": "List credit transactions",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "oauth2": [
+              "credits:read"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transaction history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CreditTransaction"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/openai/community/posts": {
+      "get": {
+        "operationId": "listCommunityPosts",
+        "tags": [
+          "Community"
+        ],
+        "summary": "List community posts",
+        "security": [],
+        "parameters": [
+          {
+            "name": "skip",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "maximum": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Posts list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CommunityPost"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/team-assessment/": {
+      "post": {
+        "operationId": "createTeamAssessment",
+        "tags": [
+          "Team Assessments"
+        ],
+        "summary": "Create a team assessment",
+        "description": "Creates a collaborative assessment with an invite link for team members.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "oauth2": [
+              "assessments:write"
+            ]
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamAssessmentCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Team assessment created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamAssessment"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/team-assessment/join/{token}": {
+      "get": {
+        "operationId": "getTeamInvite",
+        "tags": [
+          "Team Assessments"
+        ],
+        "summary": "Get team invite details",
+        "security": [],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Team invite info",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamInviteInfo"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/ping": {
+      "get": {
+        "operationId": "ping",
+        "tags": [],
+        "summary": "Health check",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Server is up",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "pong"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "Firebase JWT",
+        "description": "Firebase ID token obtained after authenticating via Firebase Authentication.\nPass as `Authorization: Bearer <idToken>`.\n"
+      },
+      "oauth2": {
+        "type": "oauth2",
+        "description": "OAuth 2.0 authorization code flow. Obtain `client_id` and `client_secret`\nby contacting support@aynstyn.com.\n",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://app.aynstyn.com/api/oauth/authorize",
+            "tokenUrl": "https://app.aynstyn.com/api/oauth/token",
+            "scopes": {
+              "profile:read": "Read user profile and settings",
+              "assessments:read": "View assessment history and results",
+              "assessments:write": "Create and submit assessments",
+              "learning:read": "View learning goals, courses and progress",
+              "learning:write": "Create and update learning goals and courses",
+              "interviews:read": "View interview history and available slots",
+              "interviews:write": "Schedule and cancel interviews",
+              "planner:read": "View planner tasks",
+              "planner:write": "Create and manage planner tasks",
+              "credits:read": "View credit balance and transaction history"
+            }
+          }
+        }
+      }
+    },
+    "parameters": {
+      "assessmentId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "goalId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "integer"
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Bad request",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Missing or invalid authentication",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "SuccessMessage": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "AuthenticatedSession": {
+        "type": "object",
+        "properties": {
+          "authenticated": {
+            "type": "boolean",
+            "example": true
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserProfile"
+          }
+        }
+      },
+      "UnauthenticatedSession": {
+        "type": "object",
+        "properties": {
+          "authenticated": {
+            "type": "boolean",
+            "example": false
+          }
+        }
+      },
+      "OAuthUserInfo": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "TokenRequestAuthCode": {
+        "type": "object",
+        "required": [
+          "grant_type",
+          "code",
+          "client_id",
+          "client_secret",
+          "redirect_uri"
+        ],
+        "properties": {
+          "grant_type": {
+            "type": "string",
+            "enum": [
+              "authorization_code"
+            ]
+          },
+          "code": {
+            "type": "string"
+          },
+          "client_id": {
+            "type": "string"
+          },
+          "client_secret": {
+            "type": "string"
+          },
+          "redirect_uri": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      },
+      "TokenRequestRefresh": {
+        "type": "object",
+        "required": [
+          "grant_type",
+          "refresh_token",
+          "client_id",
+          "client_secret"
+        ],
+        "properties": {
+          "grant_type": {
+            "type": "string",
+            "enum": [
+              "refresh_token"
+            ]
+          },
+          "refresh_token": {
+            "type": "string"
+          },
+          "client_id": {
+            "type": "string"
+          },
+          "client_secret": {
+            "type": "string"
+          }
+        }
+      },
+      "TokenResponse": {
+        "type": "object",
+        "properties": {
+          "access_token": {
+            "type": "string"
+          },
+          "token_type": {
+            "type": "string",
+            "example": "Bearer"
+          },
+          "refresh_token": {
+            "type": "string"
+          },
+          "expires_in": {
+            "type": "integer",
+            "example": 2592000
+          },
+          "scope": {
+            "type": "string",
+            "example": "profile:read assessments:read"
+          }
+        }
+      },
+      "UserProfile": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "plan": {
+            "type": "string",
+            "enum": [
+              "free",
+              "pro",
+              "enterprise"
+            ]
+          },
+          "credits": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "UserSettings": {
+        "type": "object",
+        "properties": {
+          "language": {
+            "type": "string",
+            "example": "en"
+          },
+          "theme": {
+            "type": "string",
+            "enum": [
+              "light",
+              "dark",
+              "system"
+            ]
+          },
+          "timezone": {
+            "type": "string",
+            "example": "Asia/Kolkata"
+          },
+          "notifications": {
+            "type": "boolean"
+          }
+        }
+      },
+      "UserSettingsUpdate": {
+        "type": "object",
+        "properties": {
+          "language": {
+            "type": "string"
+          },
+          "theme": {
+            "type": "string",
+            "enum": [
+              "light",
+              "dark",
+              "system"
+            ]
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "notifications": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AssessmentSubmission": {
+        "type": "object",
+        "required": [
+          "subject",
+          "responses"
+        ],
+        "properties": {
+          "assessmentId": {
+            "type": "string",
+            "description": "Optional idempotency key"
+          },
+          "subject": {
+            "type": "string",
+            "example": "General Studies Paper I"
+          },
+          "responses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssessmentResponse"
+            }
+          },
+          "language": {
+            "type": "string",
+            "default": "en"
+          }
+        }
+      },
+      "AssessmentResponse": {
+        "type": "object",
+        "required": [
+          "questionId",
+          "answer"
+        ],
+        "properties": {
+          "questionId": {
+            "type": "integer"
+          },
+          "answer": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      },
+      "AssessmentResult": {
+        "type": "object",
+        "properties": {
+          "score": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "feedback": {
+            "type": "string"
+          },
+          "topics_covered": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "topics_missed": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "credits_deducted": {
+            "type": "integer"
+          },
+          "credits_remaining": {
+            "type": "integer"
+          },
+          "recommendations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AssessmentSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "score": {
+            "type": "integer"
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "Assessment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "questions": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "status": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AssessmentReport": {
+        "type": "object",
+        "properties": {
+          "score": {
+            "type": "integer"
+          },
+          "feedback": {
+            "type": "string"
+          },
+          "strengths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "gaps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "recommendations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "InsufficientCredits": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "Insufficient credits"
+          },
+          "message": {
+            "type": "string"
+          },
+          "requiresPurchase": {
+            "type": "boolean"
+          },
+          "creditsNeeded": {
+            "type": "integer"
+          },
+          "creditsAvailable": {
+            "type": "integer"
+          }
+        }
+      },
+      "LearningGoal": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "topics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GoalTopic"
+            }
+          },
+          "progress": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "targetDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "LearningGoalDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/LearningGoal"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "assessments": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AssessmentSummary"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "GoalTopic": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "in_progress",
+              "complete"
+            ]
+          }
+        }
+      },
+      "InterviewSlot": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "time": {
+            "type": "string",
+            "format": "time"
+          },
+          "duration": {
+            "type": "integer",
+            "description": "Duration in minutes"
+          }
+        }
+      },
+      "InterviewBookingRequest": {
+        "type": "object",
+        "required": [
+          "subject",
+          "slot",
+          "sessionType"
+        ],
+        "properties": {
+          "subject": {
+            "type": "string",
+            "example": "Data Structures"
+          },
+          "slot": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sessionType": {
+            "type": "string",
+            "enum": [
+              "interview",
+              "practice"
+            ]
+          }
+        }
+      },
+      "InterviewBooking": {
+        "type": "object",
+        "properties": {
+          "bookingId": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "startTime": {
+            "type": "string"
+          },
+          "duration": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "confirmed",
+              "cancelled"
+            ]
+          }
+        }
+      },
+      "InterviewSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "duration": {
+            "type": "integer"
+          },
+          "feedback": {
+            "type": "string"
+          }
+        }
+      },
+      "PlannerItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "completed"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PlannerItemCreate": {
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "CreditBalance": {
+        "type": "object",
+        "properties": {
+          "credits": {
+            "type": "integer"
+          },
+          "lastUpdated": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreditPackage": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "credits": {
+            "type": "integer"
+          },
+          "price": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string",
+            "example": "USD"
+          },
+          "popular": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CreditTransaction": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "debit",
+              "credit"
+            ]
+          },
+          "credits": {
+            "type": "integer"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "CommunityPost": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "author": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "replies": {
+            "type": "integer"
+          },
+          "likes": {
+            "type": "integer"
+          }
+        }
+      },
+      "TeamAssessmentCreate": {
+        "type": "object",
+        "required": [
+          "title",
+          "subject",
+          "maxMembers"
+        ],
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "maxMembers": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 100
+          },
+          "deadline": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "TeamAssessment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "closed"
+            ]
+          },
+          "inviteToken": {
+            "type": "string"
+          },
+          "inviteLink": {
+            "type": "string",
+            "format": "uri"
+          },
+          "maxMembers": {
+            "type": "integer"
+          },
+          "enrolledCount": {
+            "type": "integer"
+          },
+          "deadline": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "TeamInviteInfo": {
+        "type": "object",
+        "properties": {
+          "teamName": {
+            "type": "string"
+          },
+          "maxMembers": {
+            "type": "integer"
+          },
+          "currentMembers": {
+            "type": "integer"
+          },
+          "subject": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ]
+}

@@ -1,0 +1,151 @@
+# Aynstyn
+
+> AI-powered knowledge assessment, exam preparation, and interview practice platform. Aynstyn identifies knowledge gaps using the MAPPT framework and builds deep subject competence for competitive exams and professional growth.
+
+## What Aynstyn Does
+
+Aynstyn lets users explain what they know about any subject and returns a scored, structured report with covered topics, missing topics, clarity score, depth score, and personalised feedback. It supports text and voice input, AI mock interviews, structured learning goals, smart study planning, practice sessions, and playbook journeys. It is available on web and via WhatsApp.
+
+Aynstyn is used by students preparing for competitive exams including CAT, UPSC, GRE, GATE, TOEFL, IELTS, NEET, JEE, SSC, IBPS, CLAT, NDA, SAT, and GMAT, as well as professionals building subject mastery across academic, technical, and career domains.
+
+## Core Features
+
+### AI Knowledge Assessment
+Users submit a free-text or voice explanation of a subject. The platform returns: overall score (0–100), clarity score, depth score, list of covered topics, list of missing topics, topic coverage percentage, and personalised improvement feedback. Assessments cost 4 credits.
+
+- [Assessment documentation](https://aynstyn.com/docs.html#assessments)
+- [Results and scoring](https://aynstyn.com/docs.html#results)
+
+### Voice Assessment
+Users speak their explanation; Aynstyn transcribes and evaluates it through the same scoring pipeline as text assessments.
+
+- [Voice assessment guide](https://aynstyn.com/docs.html#voice-assessment)
+
+### AI Mock Interviews
+Aynstyn conducts structured mock interviews by phone or web for competitive exams (UPSC, CAT, GRE) and professional roles (technical, behavioural, leadership). Interviews are anchored to prior assessment data.
+
+**Important for Agents**: Autonomous booking for phone-based sessions requires the user to have a **verified mobile number** (verified via OTP in Settings). If the number is not verified, Aynstyn provides a pre-filled booking URL instead of an autonomous confirmation.
+
+- [Interview practice guide](https://aynstyn.com/docs.html#ai-interview)
+
+### Playbook Journeys
+A playbook is a 7-day guided learning sequence that combines an initial assessment, daily practice sessions, a mid-point reflection, and a final mock interview. Planner entries are created automatically.
+
+- [Playbook documentation](https://aynstyn.com/docs.html#playbook-flow)
+
+### Learning Goals and Roadmaps
+Users set a learning goal; Aynstyn generates a topic roadmap, mini-course, and execution calendar aligned to their timeline.
+
+- [Learning goals guide](https://aynstyn.com/docs.html#learning-goals)
+
+### Smart Study Planner
+The planner converts goals, assessments, and practice sessions into a structured daily/weekly execution calendar.
+
+- [Smart planner documentation](https://aynstyn.com/docs.html#smart-planner)
+
+### Practice Sessions and Practice Papers
+Active-recall sessions and past-paper workflows with AI-generated mock tests for timed, exam-condition practice.
+
+- [Practice sessions](https://aynstyn.com/docs.html#practice-sessions)
+- [Practice papers](https://aynstyn.com/docs.html#practice-papers)
+
+### WhatsApp AI Agent
+Users can assess their knowledge and access Aynstyn features directly from WhatsApp with no app required. The agent performs assessments, provides results, and links to the full platform.
+
+### Sprout AI Companion
+Sprout is Aynstyn's growth mindset assistant that provides motivation, habit-building support, and daily nudges.
+
+## Pricing
+
+- **Spark** (free): 100 credits, access to assessments and basic features
+- **Starter**: 475 credits — USD 14.99 / INR 999
+- **Genius**: 800 credits — USD 24.99 / INR 1,659
+- **Pro**: 1,400 credits — USD 39.99 / INR 2,499
+- **Enterprise**: Custom commercial plan
+- 1 text assessment = 4 credits; 1 minute of voice = 5 credits
+
+- [Full pricing page](https://aynstyn.com/pricing)
+- [Pricing details (markdown)](https://aynstyn.com/pricing.md)
+
+## Developer and Agent Integration
+
+### MCP Server
+Aynstyn exposes a [Model Context Protocol](https://aynstyn.com/docs.html#mcp) server for AI agent integration.
+
+- Endpoint: `https://app.aynstyn.com/mcp`
+- Transport: Streamable HTTP, stateless, JSON-RPC 2.0
+- Health: `https://app.aynstyn.com/mcp/health`
+- Discovery: `https://app.aynstyn.com/.well-known/mcp`
+- Agent card: `https://app.aynstyn.com/.well-known/agent-card.json`
+- Agent skills: `https://app.aynstyn.com/.well-known/agent-skills`
+
+### Available MCP Tool: assess_knowledge
+Input: `subject` (string, required), `input` (string, 10–5000 chars, required).
+Output: score, clarityScore, depthScore, coveredTopics, missingTopics, topicCoverage, feedback.
+
+### REST API
+- [OpenAPI 3.1 JSON](https://aynstyn.com/openapi.json)
+- [OpenAPI 3.1 YAML](https://aynstyn.com/openapi.yaml)
+- Auth: OAuth 2.0 — `https://app.aynstyn.com/api/oauth/authorize`
+
+### Developer Portal
+- [Developers](https://aynstyn.com/developers): Full integration guide, MCP setup, REST API reference
+- [Documentation](https://aynstyn.com/docs.html): Complete platform documentation
+- [Extended LLM context](https://aynstyn.com/llms-full.txt): Full model-friendly platform summary
+
+## Modular Instructions
+
+Specialized instructions are available for specific product areas:
+- [Assessments](https://aynstyn.com/assessment/llms.txt)
+- [AI Interviews](https://aynstyn.com/interviews/llms.txt)
+- [Learning Goals](https://aynstyn.com/goals/llms.txt)
+- [Developers](https://aynstyn.com/developers/llms.txt)
+
+## Rate Limiting and Error Recovery
+
+Aynstyn infrastructure is designed for high reliability but agents should handle edge cases gracefully:
+
+- **System Status**: Check [https://aynstyn.com/status](https://aynstyn.com/status) or [https://aynstyn.com/.well-known/status.json](https://aynstyn.com/.well-known/status.json) for real-time uptime data.
+- **Rate Limits**:
+    - Anonymous MCP: 3 requests / day (IP-based).
+    - Authenticated MCP: 100 requests / hour (User-based).
+    - Community Posts: 100/hr (Auth), 30/hr (Anon).
+- **Error Codes & Handling**:
+    - **429 (Too Many Requests)**: Agents MUST respect the `Retry-After` header. Exponential backoff is recommended.
+    - **503 (Service Unavailable)**: Indicates temporary maintenance or capacity limit. Implement a wait-and-retry strategy (base delay 5s).
+    - **401 (Unauthorized)**: Access token expired or invalid. Attempt re-authentication via OAuth 2.0.
+- **Health Check**: Ping `https://app.aynstyn.com/mcp/health` for heartbeat validation.
+
+## Autonomous Finality
+
+To successfully complete a task cycle (Discovery -> Authentication -> Action -> Result), agents MUST verify the result of their actions:
+- **Verification**: After calling a tool (e.g., `assess_knowledge`), call the corresponding history tool (e.g., `get_assessment_history`) to confirm the state change.
+- **Result Production**: A task is only considered complete once the agent has retrieved and presented the final system state (e.g., a Score Report or a Booking Confirmation) to the user.
+- **Statelessness**: Aynstyn's MCP server is stateless; always provide the required authentication headers and identifiers in every request to maintain continuity.
+
+## Sandbox and Testing
+
+Aynstyn provides a low-friction onboarding path for AI agents:
+- **Free Tier (Spark)**: Every new account starts with 100 free credits, sufficient for ~25 text assessments.
+- **Self-Serve Keys**: Use OAuth 2.0 or Firebase ID tokens for immediate access. No manual approval required.
+- **Sandbox Mode**: All API endpoints support a `sandbox: true` header (or flag in MCP tools) to simulate responses without deducting credits.
+- **Agent Testing**: Agents can use the `diagnose_learner` tool with sample data to test integration logic without cost.
+
+## Supported Exams and Subjects
+
+Competitive exams: CAT, XAT, UPSC, GATE, GRE, GMAT, TOEFL, IELTS, NEET, JEE, SSC CGL, IBPS, CLAT, NDA, SAT.
+
+Subject domains: Mathematics, Physics, Chemistry, Biology, Computer Science, Data Structures, Machine Learning, Python, JavaScript, Marketing, Finance, Economics, History, Geography, Law, Management, English, and any other subject a user can explain.
+
+## Canonical Links
+
+- [Website](https://aynstyn.com)
+- [Web app](https://app.aynstyn.com)
+- [Documentation](https://aynstyn.com/docs.html)
+- [Developers](https://aynstyn.com/developers)
+- [Pricing](https://aynstyn.com/pricing)
+- [FAQ](https://aynstyn.com/faq)
+- [Help centre](https://aynstyn.com/help-center)
+- [Privacy policy](https://aynstyn.com/privacy-policy)
+- [Terms](https://aynstyn.com/terms-and-conditions)
+- [Contact](https://aynstyn.com/contact-us)
